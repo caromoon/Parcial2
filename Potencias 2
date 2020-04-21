@@ -1,0 +1,169 @@
+#include "p16F628a.inc"    ;incluir librerias relacionadas con el dispositivo
+ __CONFIG _FOSC_INTOSCCLK & _WDTE_OFF & _PWRTE_OFF & _MCLRE_OFF & _BOREN_OFF & _LVP_OFF & _CPD_OFF & _CP_OFF    
+;configuración del dispositivotodo en OFF y la frecuencia de oscilador
+valor equ 0x30
+contadoraux equ 0x31
+contador equ 0x32
+product equ 0x33
+num1 equ  0x34
+num2 equ  0x35
+num3 equ  0x36
+num4 equ  0x37
+num5 equ  0x38
+num6 equ  0x39
+num7 equ  0x40
+W equ 0
+f equ 1
+ 
+org 0 ;inicie en 0 de la memoria
+START 
+MOVLW 0x07 ;Apagar comparadores
+MOVWF CMCON
+BCF STATUS, RP1 ;Cambiar al banco 1
+BSF STATUS, RP0 
+MOVLW b'00000000' ;Establecer puerto B como salida (los 8 bits del puerto)
+MOVWF TRISB 
+BCF STATUS, RP0 ;Regresar al banco 0
+
+INICIO:
+    movlw d'0'
+    movwf num1
+    
+    movlw d'31'
+    movwf num2
+    
+    movlw d'15'
+    movwf num3
+    
+    movlw d'7'
+    movwf num4
+    
+    movlw d'3'
+    movwf num5
+    
+    movlw d'1'
+    movwf num6
+    
+    movlw d'1'
+    movwf num7
+    
+    clrf valor ;limpia el valor final
+    goto CICLO
+    
+CICLO:
+    clrf product ; limpia el valor de los productos
+    movlw d'65'  ; carga w con 8
+    movwf contadoraux ; contadoraux = 8
+    
+    clrw 
+    goto POTENCIA ; inicia la potencia
+    
+POTENCIA:
+    clrw 
+    movf product, W   ; carga lo que hay en producto en W
+    addwf valor,f ;suma lo de W en valor
+    
+    clrw 
+    
+    decfsz contadoraux, f ; decremanta si es diferente de 0
+    goto MULT_INI 
+    
+    movlw D'1' ; asigna el último valor que es 1
+    addwf valor 
+    
+    goto INICIO
+    
+MULT_INI:
+    clrf product   ; limpia el producto
+    clrw ; limpia el acumulador W
+    
+    movf contadoraux, W  
+    movwf contador ; contador = valor de contadoraux
+    movwf contadoraux ; mantiene el mismo valor de contadoraux
+    clrw ; limpia el acumulador W
+    
+MULT_LOOP:
+    movlw D'2'	; inicializa el registro W con el valor de numero
+    addwf product, f ; suma el valor de W al de producto
+    clrw
+    
+    decfsz contador, f ; decrementa y si es 0 salta un espacio
+    goto MULT_LOOP
+    goto DECREMENTO
+    
+DECREMENTO:
+    btfss num1, d'0'
+    goto INC1
+    
+    btfss num2, d'0'
+    goto INC2
+    
+    btfss num3, d'0'
+    goto INC3
+    
+    btfss num4, d'0'
+    goto INC4
+        
+    btfss num5, d'0'
+    goto INC5
+    
+    btfss num6, d'0'
+    goto INC6
+    
+    decf contadoraux,f
+    goto POTENCIA
+    
+INC1:
+    movf num2, W
+    subwf contadoraux
+    clrf num2
+    movlw d'1'
+    movwf num1
+    goto POTENCIA
+    
+INC2: 
+    movf num3, W
+    subwf contadoraux
+    clrf num3
+    movlw d'1'
+    movwf num2
+    goto POTENCIA
+    
+INC3:
+    movf num4, W
+    subwf contadoraux
+    clrf num4
+    movlw d'1'
+    movwf num3
+    goto POTENCIA
+
+INC4:
+    movf num5, W
+    subwf contadoraux
+    clrf num5
+    movlw d'1'
+    movwf num4
+    goto POTENCIA
+
+ INC5:
+    decf contadoraux,f
+    decf contadoraux,f
+    
+    clrf num6
+    movlw d'1'
+    movwf num5
+    goto POTENCIA
+
+INC6:
+    incf contadoraux, f
+    incf contadoraux, f
+    
+    clrf num7
+    movlw d'1'
+    movwf num6 
+    goto POTENCIA
+  
+end
+
+
+
