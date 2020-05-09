@@ -1,14 +1,12 @@
 #include "p16F628a.inc"    ;incluir librerias relacionadas con el dispositivo
  __CONFIG _FOSC_INTOSCCLK & _WDTE_OFF & _PWRTE_OFF & _MCLRE_OFF & _BOREN_OFF & _LVP_OFF & _CPD_OFF & _CP_OFF    
-;configuración del dispositivotodo en OFF y la frecuencia de oscilador
-;es la del "reloj del oscilador interno" (INTOSCCLK)     
+ 
 RES_VECT  CODE    0x0000            ; processor reset vector
 GOTO    START               ; go to beginning of program
-; TODO ADD INTERRUPTS HERE IF USED
 MAIN_PROG CODE                      ; let linker place main program
 ;variables para el contador:
  acu equ 0x30
- 
+
  START
  BCF STATUS, RP1
  BSF STATUS, RP0
@@ -16,7 +14,7 @@ MAIN_PROG CODE                      ; let linker place main program
  MOVWF TRISB
  MOVLW b'11111111'
  MOVWF TRISA
- BCF STATUS, RPO
+ BCF STATUS, RP0
  #define LED1 PORTB, 0
  #define LED2 PORTB, 1
  #define LED3 PORTB, 2
@@ -25,29 +23,28 @@ MAIN_PROG CODE                      ; let linker place main program
 nop
 MOVLW b'00000000'
 MOVWF PORTA
-MOVWF PORTA
-MOVWF i
-nop
+MOVWF PORTB
+MOVWF acu
  
  INICIO
+ 
  BTFSC PB1
- MOVF PORTA,0
- MOVWF acu
+ MOVF PORTA,0 ;guardo la cadena A en W
+ MOVWF acu  ;lo paso a acu
  BTFSC PB2
- MOVF PORTA,0
- nop
- SUBWF acu,0
+ MOVF PORTA,0  ;guardo cadena B en W
+ SUBWF acu,0 ;se resta acu-W y se guarda en W
  BTFSC STATUS, 0
  call LEDS
- BSF LED1 ;PARA INDICAR QUE ES MAYOR, SI NO VOY A "LEDS"
+ BSF LED1 ;PARA INDICAR QUE A<B, SI NO VOY A "LEDS"
  GOTO INICIO
  
  LEDS:
- BTFSC STATUS 2, igual
+ BTFSC STATUS, 2 
  BSF LED2 ;SI SON IGUALES LAS PALABRAS 
- BSF LED3 
- 
- 
+ BSF LED3 ; A>B
  
  END
+
+
  
