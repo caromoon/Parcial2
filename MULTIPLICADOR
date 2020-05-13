@@ -1,0 +1,38 @@
+#include "p16F628a.inc"    ;incluir librerias relacionadas con el dispositivo
+ __CONFIG _FOSC_INTOSCCLK & _WDTE_OFF & _PWRTE_OFF & _MCLRE_OFF & _BOREN_OFF & _LVP_OFF & _CPD_OFF & _CP_OFF    
+
+RES_VECT  CODE    0x0000            ; processor reset vector
+GOTO    START               ; go to beginning of program
+MAIN_PROG CODE                      ; let linker place main program
+n1 equ 0x30
+n2 equ 0x31
+ 
+START
+
+BCF STATUS, RP1
+BSF STATUS, RP0 ;entro a banco 1 
+MOVLW b'00000000'
+MOVWF TRISB ;portb de salida
+BSF TRISA,1 ; 1 entrada puerto a
+BCF STATUS, RP0
+ 
+CLRF PORTB
+MOVLW b'00000111'
+MOVWF n1
+MOVLW b'00000101' 
+MOVWF n2
+
+INICIO:
+ 
+MOVF n1,0
+BTFSC n2, 0 ;si es negativo salta
+ADDWF PORTB  
+nop
+RLF n1,1
+RRF n2,1
+BCF STATUS, C
+MOVF n2,1 ;n2 a f
+BTFSS STATUS, Z ; si f=0,Z=1
+GOTO INICIO
+nop
+END
