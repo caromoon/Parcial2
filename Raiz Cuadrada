@@ -1,0 +1,56 @@
+#include "p16F628a.inc"    ;incluir librerias relacionadas con el dispositivo
+ __CONFIG _FOSC_INTOSCCLK & _WDTE_OFF & _PWRTE_OFF & _MCLRE_OFF & _BOREN_OFF & _LVP_OFF & _CPD_OFF & _CP_OFF    
+RES_VECT  CODE    0x0000            ; processor reset vector
+    GOTO    START                   ; go to beginning of program
+; TODO ADD INTERRUPTS HERE IF USED
+MAIN_PROG CODE                      ; let linker place main program
+;variables para el contador:
+cont equ 0x30
+nm equ 0x31 
+k equ 0x32
+x equ 0x33
+in equ 0x34
+z equ 0x35
+;inicio del programa: 
+START
+    MOVLW 0x07 ;Apagar comparadores
+    MOVWF CMCON
+    MOVLW d'49'
+    MOVWF x ;x=49
+    MOVWF z ;z=49
+    MOVLW d'1'
+    MOVWF in  ;in=1
+INICIO
+    
+    MOVF in,0;w=1
+    MOVWF cont ;cont =1
+    MOVWF nm ; nm=1
+    call multi; el resultado se guarda en k!
+    MOVF k,0 ;w=k
+    BSF STATUS,C ;C=1	
+    SUBWF z,1 ;i-W --- el numero se guarda en 1
+    BTFSS STATUS,Z
+    GOTO CN
+    nop
+    
+CN
+   INCFSZ in,1
+   MOVLW d'0' ;W=0
+   MOVWF k  ;K=0
+   MOVF x,0 ;W=49
+   MOVWF z ;z=49
+   GOTO INICIO
+    
+ multi:
+    MOVF cont,0
+    BTFSC nm,0
+    ADDWF k,1
+    nop
+    RLF cont,1
+    RRF nm,1
+    BCF STATUS,0
+    BTFSS STATUS,2
+    call multi
+    return 
+    NOP
+    END
