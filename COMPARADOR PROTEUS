@@ -1,0 +1,416 @@
+#include "p16F887.inc" 
+
+	; TODO INSERT CONFIG CODE HERE USING CONFIG BITS GENERATOR
+ 	__CONFIG	_CONFIG1,	_INTRC_OSC_NOCLKOUT & _WDT_OFF & _PWRTE_OFF & _MCLRE_ON & _CP_OFF & _CPD_OFF & _BOR_OFF & _IESO_ON & _FCMEN_ON & _LVP_OFF 
+ 	__CONFIG	_CONFIG2,	_BOR40V & _WRT_OFF
+
+RES_VECT  CODE    0x0000            ; processor reset vector
+    GOTO    START                   ; go to beginning of program
+
+    BCF PORTC,0		;reset
+    
+    MOVLW 0x01
+    MOVWF PORTD
+
+    BSF PORTC,1		;exec
+    CALL time
+    BCF PORTC,1
+    CALL time
+  
+    GOTO    START
+
+MAIN_PROG CODE                      ; let linker place main program
+
+START
+
+i equ 0x30
+j equ 0x31
+k equ 0x32
+CADENA1 equ 0x33
+CADENA2 equ 0x34
+
+#define B1 PORTA,0
+#define B2 PORTA,1 
+
+START 
+
+    BANKSEL PORTB ;
+    CLRF PORTB ;Init PORTB
+    BANKSEL PORTA;
+    CLRF PORTA;
+    BANKSEL ANSEL ;ANSEL ES REGISTRO ANALOGICO, DEBEMOS PONERLO EN 0 
+    CLRF ANSEL ;digital I/O
+    CLRF ANSELH 
+    BANKSEL TRISB ;
+    MOVLW d'255'
+    MOVWF TRISB ;PUERTO DE ENTRADA!
+    ;MOVLW b'00000011'
+    ;MOVWF TRISA
+    MOVWF TRISA ;PUERTO DE ENTRADA
+    CLRF TRISC ;PUERTO DE SALIDA
+    CLRF TRISD ;PUERTO DE SALIDA!
+    CLRF TRISE ;PUERTO DE SALIDA
+    BCF STATUS,RP1
+    BCF STATUS,RP0
+    BCF PORTC,1 
+    BCF PORTC,0
+     
+   
+INITLCD
+    BCF PORTC,0		;reset
+    MOVLW 0x01           ;limpia pantalla
+    MOVWF PORTD
+    
+    BSF PORTC,1	       ;SE PRENDE EL ENABLE PIN
+    CALL time          ;RETARDOS PARA QUE REACCIONE EL LCD
+    BCF PORTC,1        ;SE APAGA EL ENABLE PIN
+    CALL time
+    
+    MOVLW 0x0C		;SE SITUA EN LA PRIMERA LINEA DEL LCD 
+    MOVWF PORTD
+    
+    BSF PORTC,1		;E (ENABLE PIN) EN OPERACION NORMAL SE PONE EN 1
+    CALL time
+    BCF PORTC,1         ;E LCD DESCONECTADO
+    CALL time
+         
+    MOVLW 0x3C		;SE CONFIGURA EL CURSOR
+    MOVWF PORTD
+    
+    BSF PORTC,1		;E LCD CONECTADO
+    CALL time           ;LLAMAR RETARDO
+    BCF PORTC,1         ;E LCD DESCONECTADO
+    CALL time  
+    ;;
+    MOVLW b'00000000'
+    MOVWF CADENA1
+    
+INICIO	   
+    
+    MOVLW b'00000000'  
+    MOVWF PORTB
+    call time
+    BTFSC B1 ;SI NO SE APRIETA B1 ... 
+    call GUARDAR1
+    call DESPLEGARC1
+    call DESPLEGARC2
+    call time
+    BTFSC B2 
+    call GUARDAR2
+    call DESPLEGARC2
+   
+    call COMPARACION
+    
+    GUARDAR1
+    MOVF PORTB,0
+    MOVWF CADENA1
+    CLRF PORTB
+    BSF STATUS,C
+    RETURN
+    
+    GUARDAR2
+    
+    MOVF PORTB,0 ;PORTB SE GUARDA EN W
+    MOVWF CADENA2
+    CLRF PORTB
+    BSF STATUS,C
+    RETURN 
+   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
+    COMPARACION
+    	MOVF CADENA2,0
+    SUBWF CADENA1, 0;CADENA1-W Y LO GUARDA EN W
+    BTFSC STATUS,Z ;SI Z=1 ES QUE A Y B SON IGUALES
+    call SIGNOIGUAL
+    call MAYORYMENOR
+    call INICIO
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+  
+  SIGNOIGUAL 
+    BCF PORTC,0		;command mode
+    CALL time
+    
+    MOVLW 0x8E		;LCD position
+    MOVWF PORTD
+    CALL exec
+    
+    BSF PORTC,0		;data mode
+    CALL time
+    
+    MOVLW  '='
+    MOVWF PORTD
+    CALL exec
+   
+    
+    BCF STATUS,C
+    ;BCF STATUS,1
+    ;BCF STATUS,Z 
+    
+    GOTO INICIO
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
+
+    MAYORYMENOR
+    BTFSC STATUS,Z ;SI Z=1 YA SE HIZO LO DE IGUALES
+    GOTO INICIO
+    BTFSC STATUS,C ;CHECA SI EL CARRY ES 0
+    call SIGNOMAYOR
+    call SIGNOMENOR
+    
+    GOTO INICIO
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+    SIGNOMAYOR                 ;SI A ES MAYOR A B SE DESPLIEGA UNA A
+     
+     BCF PORTC,0		;command mode
+    CALL time
+    
+    MOVLW 0x8E	;LCD position
+    MOVWF PORTD
+    CALL exec
+    
+    BSF PORTC,0		;data mode
+    CALL time
+    
+    MOVLW '>' 
+    MOVWF PORTD
+    CALL exec
+   
+    BCF STATUS,C
+    ;BCF STATUS,1 
+   ; BCF STATUS,Z
+   
+    GOTO INICIO 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
+    SIGNOMENOR        ;SI B  ES  MAYOR QUE A DESPLIEGA UNA B
+     
+     BCF PORTC,0		;command mode
+    CALL time
+    
+    MOVLW 0x8E		;LCD position
+    MOVWF PORTD
+    CALL exec
+    
+    BSF PORTC,0		;data mode
+    CALL time
+    
+    MOVLW '<' 
+    MOVWF PORTD
+    CALL exec
+   
+    BCF STATUS,C  ;CARRY EN CERO
+    ;BCF STATUS,1 
+    ;BCF STATUS,Z
+   
+    GOTO INICIO
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,,
+  DESPLEGARC1
+    BCF PORTC,0		;command mode
+    CALL time
+    
+    MOVLW 0x80		;LCD position
+    MOVWF PORTD
+    CALL exec
+    
+    BSF PORTC,0		;data mode
+    CALL time
+    
+    MOVLW ' '
+    MOVWF PORTD
+    CALL exec
+    
+    MOVLW 'C'
+    MOVWF PORTD
+    CALL exec
+    
+    MOVLW '1'
+    MOVWF PORTD
+    CALL exec
+    
+    MOVLW '.'
+    MOVWF PORTD
+    CALL exec
+    
+    MOVLW ' '
+    MOVWF PORTD
+    CALL exec
+   CALL time
+    
+    BTFSS CADENA1,7
+    CALL print0
+    BTFSC CADENA1,7
+    CALL print1
+ 
+    BTFSS CADENA1,6
+    CALL print0
+    BTFSC CADENA1,6
+    CALL print1
+    
+    BTFSS CADENA1,5
+    CALL print0
+    BTFSC CADENA1,5
+    CALL print1
+    
+    BTFSS CADENA1,4
+    CALL print0
+    BTFSC CADENA1,4
+    CALL print1
+    
+    BTFSS CADENA1,3
+    CALL print0
+    BTFSC CADENA1,3
+    CALL print1
+    
+    BTFSS CADENA1,2
+    CALL print0
+    BTFSC CADENA1,2
+    CALL print1
+    
+    BTFSS CADENA1,1
+    CALL print0
+    BTFSC CADENA1,1
+    CALL print1
+     
+    BTFSS CADENA1,0
+    CALL print0
+    BTFSC CADENA1,0
+    CALL print1
+    
+   ;BCF PORTC,0		;command mode
+    ;CALL time
+    
+    ;MOVLW 0x80		;LCD position
+    ;MOVWF PORTD
+    ;CALL exec
+    RETURN
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+   DESPLEGARC2
+    BCF PORTC,0		;command mode
+    CALL time
+    
+    MOVLW 0xC0		;SE POSICIONA EN LA LINEA 2
+    MOVWF PORTD
+    CALL exec
+
+    BSF PORTC,0		;data mode
+    CALL time
+    
+    MOVLW ' '
+    MOVWF PORTD
+    CALL exec 
+    
+    MOVLW 'C'
+    MOVWF PORTD
+    CALL exec
+    
+    MOVLW '2'
+    MOVWF PORTD
+    CALL exec
+      
+    MOVLW '.'
+    MOVWF PORTD
+    CALL exec
+    
+    MOVLW ' '
+    MOVWF PORTD
+    CALL exec	;command mode
+    CALL time
+    
+  ;  MOVLW 0xC8		;LCD position
+   ; MOVWF PORTD
+   ; CALL exec 
+    
+   ; BSF PORTC,0		;data mode
+    ;CALL time
+    
+    BTFSS  CADENA2,7
+    CALL print0
+    BTFSC  CADENA2,7
+    CALL print1
+    
+    BTFSS  CADENA2 ,6
+    CALL print0
+    BTFSC  CADENA2 ,6
+    CALL print1
+    
+    BTFSS  CADENA2 ,5
+    CALL print0
+    BTFSC  CADENA2 ,5
+    CALL print1
+    
+    BTFSS  CADENA2 ,4
+    CALL print0
+    BTFSC  CADENA2 ,4
+    CALL print1    
+    
+    BTFSS  CADENA2 ,3
+    CALL print0
+    BTFSC CADENA2 ,3
+    CALL print1
+    
+    BTFSS  CADENA2 ,2
+    CALL print0
+    BTFSC  CADENA2 ,2
+    CALL print1
+    
+    BTFSS  CADENA2 ,1
+    CALL print0
+    BTFSC  CADENA2 ,1
+    CALL print1
+    
+    BTFSS  CADENA2 ,0 
+    CALL print0 
+    BTFSC  CADENA2 ,0
+    CALL print1    
+      
+    BCF PORTC,0		;command mode
+    CALL time
+    
+    ;MOVLW 0x80		;LCD position
+    ;MOVWF PORTD
+    ;CALL exec
+        
+   RETURN
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+print0
+    MOVLW 0x30
+    MOVWF PORTD
+    BSF PORTC,1		;exec
+    CALL time
+    BCF PORTC,1
+    CALL time
+    nop
+    RETURN
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
+print1
+    MOVLW 0x31
+    MOVWF PORTD
+    BSF PORTC,1		;exec
+    CALL time
+    BCF PORTC,1
+    CALL time
+    nop
+    RETURN   
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
+exec
+
+    BSF PORTC,1		;exec
+    CALL time
+    BCF PORTC,1
+    CALL time
+    RETURN
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
+time
+    CLRF i
+    MOVLW d'10'
+    MOVWF j
+    
+ciclo    
+    MOVLW d'80'
+    MOVWF i
+    DECFSZ i
+    GOTO $-1
+    DECFSZ j
+    GOTO ciclo
+    RETURN
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,			
+    END
+
+    
