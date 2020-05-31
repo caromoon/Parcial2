@@ -81,13 +81,18 @@ INICIO
     BCF PORTC,0		;command mode
     CALL time
     
-    MOVLW 0x80		;LCD position   
+   
+   MOVLW 0x80		;LCD position   
     MOVWF PORTD
     CALL exec
     
     BSF PORTC,0		;data mode
     CALL time
+    CALL  DESPLEGARBIN
+    CALL DESPLEGARGRAY
     
+    
+    DESPLEGARBIN
     MOVLW 'N'
     MOVWF PORTD
     CALL exec
@@ -160,8 +165,9 @@ INICIO
     CALL print0
     BTFSC PORTB,0
     CALL print1
-    
+RETURN
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
+    DESPLEGARGRAY
     
     BCF PORTC,0		;command mode
     CALL time
@@ -284,6 +290,8 @@ print1
     CALL time
     nop
     RETURN
+    
+    
     
 exec
 
